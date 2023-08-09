@@ -18,4 +18,5 @@ __pycache__
 data_collection_example
 *_pb2.py
 venv/
-deoxys/.cache/
+.cache/
+*.swp

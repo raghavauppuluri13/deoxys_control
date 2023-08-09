@@ -28,11 +28,11 @@ def main():
 
     controller_type = args.controller_type
     controller_cfg = get_default_controller_config(controller_type=controller_type)
-    # controller_cfg = YamlConfig("config/osc-pose-controller.yml").as_easydict()
+    #controller_cfg = YamlConfig("config/osc-pose-controller.yml").as_easydict()
 
     robot_interface._state_buffer = []
 
-    for i in range(3000):
+    for i in range(10000):
         start_time = time.time_ns()
 
         action, grasp = input2action(
