@@ -38,14 +38,20 @@ include(${CMAKE_CURRENT_LIST_DIR}/libfranka/cmake/FindEigen3.cmake)
 #
 # cmake-format: on
 
+set(RPAL_PROTO_FILES
+  proto/rpal-interface/force_sensor.proto
+)
+
 set(FRANKA_PROTO_FILES
   proto/franka-interface/franka_robot_state.proto
   proto/franka-interface/franka_controller.proto
-  )
+)
+
 
 set(PROTO_FILES
   proto/sample.proto
   ${FRANKA_PROTO_FILES}
+  ${RPAL_PROTO_FILES}
   )
 
 message("FRANKA ${BUILD_FRANKA}")
@@ -55,8 +61,9 @@ if (BUILD_FRANKA)
   message("${PROTO_NAMESPACE}")  
   add_proto_cc_library(shared_protobuf
     NAMESPACE ${PROTO_NAMESPACE}
-    PROTO_FILES ${FRANKA_PROTO_FILES}
+    PROTO_FILES ${FRANKA_PROTO_FILES} ${RPAL_PROTO_FILES}
     PROTO_LIB protobuf)
+
   set(BUILD_TESTS OFF CACHE BOOL "Turn off libfranka tests")
   set(BUILD_EXAMPLES OFF CACHE BOOL "Turn off libfranka examples")
   find_package(Eigen3 REQUIRED)
@@ -115,7 +122,7 @@ if (BUILD_FRANKA)
 
   # zmq example
   add_executable(zmq-client franka-interface/src/test/test_zmq.cpp)
-  target_link_libraries(zmq-client zmqpp deoxys::shared_protobuf)
+  target_link_libraries(zmq-client LINK_PUBLIC -pthread -lprotobuf -lpthread zmqpp deoxys::shared_protobuf  )
 
   install(TARGETS
     franka-interface

@@ -1,0 +1,7 @@
+syntax = 'proto3';
+
+message RpalForceSensorMessage {
+  double F_x = 1;
+  double F_y = 2;
+  double F_z = 3;
+}
