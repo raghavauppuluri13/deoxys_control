@@ -167,8 +167,9 @@ int main(int argc, char **argv) {
   const std::string subscriber_ip = config["PC"]["IP"].as<std::string>();
   const std::string sub_port = config["NUC"]["SUB_PORT"].as<std::string>();
 
+  // force sensor
   const std::string force_sensor_sub_port =
-      config["NUC"]["FORCE_SENSOR_SUB_PORT"].as<std::string>();
+      config["PC"]["FORCE_SENSOR_PUB_PORT"].as<std::string>();
 
   // Publishing control command
   const std::string pub_port = config["NUC"]["PUB_PORT"].as<std::string>();
