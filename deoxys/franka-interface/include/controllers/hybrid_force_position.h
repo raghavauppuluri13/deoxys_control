@@ -1,13 +1,6 @@
 // Copyright 2023 Raghava Uppuluri
 
-#include <Eigen/src/Core/Matrix.h>
-#include <franka/duration.h>
-#include <franka/exception.h>
-#include <franka/model.h>
-#include <franka/robot.h>
-
 #include "controllers/base_controller.h"
-#include "utils/shared_state.h"
 
 #ifndef DEOXYS_FRANKA_INTERFACE_INCLUDE_CONTROLLERS_HYBRID_FORCE_POSITION_CONTROLLER_H_
 #define DEOXYS_FRANKA_INTERFACE_INCLUDE_CONTROLLERS_HYBRID_FORCE_POSITION_CONTROLLER_H_
@@ -28,16 +21,24 @@ protected:
 
 public:
   HybridForcePositionController();
-  HybridForcePositionController(franka::Model &model);
-
   ~HybridForcePositionController();
 
-  std::array<double, 7> HybridForcePositionController::Step(
-      const franka::RobotState &robot_state,
-      const Eigen::Vector3d &wrench_in_sensor_frame,
-      const Eigen::Vector3d &desired_wrench_in_sensor_frame,
-      const Eigen::Vector3d &desired_pos_EE_in_base_frame,
-      const Eigen::Quaterniond &desired_quat_EE_in_base_frame);
-}; // namespace controller
+  HybridForcePositionController(franka::Model &model);
+
+  bool ParseMessage(const FrankaControlMessage &msg);
+
+  // void ComputeGoal(const Eigen::Vector3d&, const Eigen::Quaterniond&,
+  // Eigen::Vector3d&, Eigen::Quaterniond&);
+  void ComputeGoal(const std::shared_ptr<StateInfo> &state_info,
+                   std::shared_ptr<StateInfo> &goal_info);
+
+  std::array<double, 7>
+  Step(const franka::RobotState &robot_state,
+       const Eigen::Vector3d &wrench_in_sensor_frame,
+       const Eigen::Vector3d &desired_wrench_in_sensor_frame,
+       const Eigen::Vector3d &desired_pos_EE_in_base_frame,
+       const Eigen::Quaterniond &desired_quat_EE_in_base_frame);
+};
+} // namespace controller
 
 #endif // DEOXYS_FRANKA_INTERFACE_INCLUDE_CONTROLLERS_HYBRID_FORCE_POSITION_CONTROLLER_H_

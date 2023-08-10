@@ -22,8 +22,8 @@ message HybridForcePoseGoal {
 // Controller for hybrid force position control
 message RpalHybridForcePositionControllerMessage {
   HybridForcePoseGoal goal = 1;
-  repeated double translational_stiffness = 2;
-  repeated double rotational_stiffness = 3;
+  double translational_stiffness = 2;
+  double rotational_stiffness = 3;
   double kp = 4;
   double ki = 5;
   bool termination = 6;

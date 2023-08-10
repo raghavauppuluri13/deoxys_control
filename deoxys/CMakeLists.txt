@@ -86,6 +86,7 @@ if (BUILD_FRANKA)
   set (CONTROLLERS
     franka-interface/src/controllers/osc_impedance.cpp
     franka-interface/src/controllers/osc_position_impedance.cpp
+    franka-interface/src/controllers/hybrid_force_position.cpp
     franka-interface/src/controllers/osc_yaw_impedance.cpp
     franka-interface/src/controllers/joint_position.cpp
     franka-interface/src/controllers/joint_impedance.cpp)

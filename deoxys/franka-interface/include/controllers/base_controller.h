@@ -39,6 +39,13 @@ public:
   // virtual void ComputeGoal(const Eigen::Matrix<double, 7, 1>&,
   // Eigen::Matrix<double, 7, 1>&) {};
 
+  // with force sensor
+  inline virtual std::array<double, 7> Step(const franka::RobotState &,
+                                            const Eigen::Vector3d &,
+                                            const Eigen::Vector3d &,
+                                            const Eigen::Vector3d &,
+                                            const Eigen::Quaterniond &){};
+
   inline virtual std::array<double, 7> Step(const franka::RobotState &,
                                             const Eigen::Vector3d &,
                                             const Eigen::Quaterniond &){};

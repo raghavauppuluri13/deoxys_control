@@ -52,16 +52,16 @@ bool HybridForcePositionController::ParseMessage(
 
   cartesian_damping_.setIdentity();
   cartesian_damping_.topLeftCorner<3, 3>()
-      << 2.0 * sqrt(control_msg_.translational_stiffness) *
+      << 2.0 * std::sqrt(control_msg_.translational_stiffness()) *
              Eigen::Matrix3d::Identity();
   cartesian_damping_.bottomRightCorner<3, 3>()
-      << 2.0 * sqrt(control_msg_.rotational_stiffness) *
+      << 2.0 * std::sqrt(control_msg_.rotational_stiffness()) *
              Eigen::Matrix3d::Identity();
 
   cartesian_damping_(2, 2) = 0.0;
 
-  kp_ = control_msg_.kp;
-  ki_ = control_msg_.ki;
+  kp_ = control_msg_.kp();
+  ki_ = control_msg_.ki();
 
   this->state_estimator_ptr_->ParseMessage(msg.state_estimator_msg());
   return true;
@@ -100,7 +100,7 @@ void HybridForcePositionController::ComputeGoal(
 
   goal_state_info->wrench_in_sensor_frame =
       Eigen::Vector3d(control_msg_.goal().fx(), control_msg_.goal().fy(),
-                      control_msg.goal().fz());
+                      control_msg_.goal().fz());
   // goal_state_info->joint_positions << control_msg_.goal().q1(),
   // control_msg_.goal().q2(), control_msg_.goal().q3(),
   // control_msg_.goal().q4(), control_msg_.goal().q5(),
