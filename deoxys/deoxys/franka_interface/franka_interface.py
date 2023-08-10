@@ -9,12 +9,30 @@ import zmq
 
 import deoxys.proto.franka_interface.franka_controller_pb2 as franka_controller_pb2
 import deoxys.proto.franka_interface.franka_robot_state_pb2 as franka_robot_state_pb2
+
 from deoxys.franka_interface.visualizer import visualizer_factory
 from deoxys.utils import transform_utils
 from deoxys.utils.config_utils import verify_controller_config
 from deoxys.utils.yaml_config import YamlConfig
 
 logger = logging.getLogger(__name__)
+
+
+def action_to_force_pos_goal(
+    action, is_delta=True
+) -> franka_controller_pb2.HybridForcePoseGoal:
+    goal = franka_controller_pb2.HybridForcePoseGoal()
+    goal.is_delta = is_delta
+    goal.x = action[0]
+    goal.y = action[1]
+    goal.z = action[2]
+    goal.ax = action[3]
+    goal.ay = action[4]
+    goal.az = action[5]
+    goal.fx = action[6]
+    goal.fy = action[7]
+    goal.fz = action[8]
+    return goal
 
 
 def action_to_osc_pose_goal(action, is_delta=True) -> franka_controller_pb2.Goal:
@@ -420,6 +438,37 @@ class FrankaInterface:
                 controller_cfg.traj_interpolator_cfg["time_fraction"]
             )
             control_msg.control_msg.Pack(joint_impedance_msg)
+            control_msg.timeout = 0.2
+            control_msg.termination = termination
+
+            control_msg.state_estimator_msg.CopyFrom(state_estimator_msg)
+
+            msg_str = control_msg.SerializeToString()
+            self._publisher.send(msg_str)
+
+        elif controller_type == "RPAL_HYBRID_POSITION_FORCE":
+
+            assert controller_cfg is not None
+            assert len(action) == 9
+
+            hybrid_force_pos_msg = (
+                franka_controller_pb2.RpalHybridForcePositionControllerMessage()
+            )
+            goal = action_to_force_pos_goal(action, is_delta=controller_cfg.is_delta)
+
+            hybrid_force_pos_msg.goal.CopyFrom(goal)
+
+            control_msg = franka_controller_pb2.FrankaControlMessage()
+            control_msg.controller_type = (
+                franka_controller_pb2.FrankaControlMessage.ControllerType.HYBRID_FORCE_POSITION
+            )
+            control_msg.traj_interpolator_type = (
+                franka_controller_pb2.FrankaControlMessage.TrajInterpolatorType.SMOOTH_JOINT_POSITION
+            )
+            control_msg.traj_interpolator_time_fraction = (
+                controller_cfg.traj_interpolator_cfg["time_fraction"]
+            )
+            control_msg.control_msg.Pack(hybrid_force_pos_msg)
             control_msg.timeout = 0.2
             control_msg.termination = termination
 

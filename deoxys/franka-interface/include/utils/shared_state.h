@@ -12,5 +12,7 @@ struct StateInfo {
                                               // now. Will update in the future.
   Eigen::Vector3d rot_vel_EE_in_base_frame; // TODO (Yifeng): not used for now.
                                             // Will update in the future.
+  Eigen::Vector3d wrench_in_sensor_frame;
 };
+
 #endif // DEOXYS_FRANKA_INTERFACE_INCLUDE_UTILS_SHARED_STATE_H_

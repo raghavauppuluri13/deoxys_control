@@ -1,6 +1,34 @@
 syntax = 'proto3';
 import "google/protobuf/any.proto";
 
+// Goal specification for hybrid force position control
+
+message HybridForcePoseGoal {
+  bool is_delta = 1;
+  double x = 2;
+  double y = 3;
+  double z = 4;
+
+  double ax = 5;
+  double ay = 6;
+  double az = 7;
+
+  // absolute force in N regardless of is_delta
+  double fx = 8;
+  double fy = 9;
+  double fz = 10;
+}
+
+// Controller for hybrid force position control
+message RpalHybridForcePositionControllerMessage {
+  HybridForcePoseGoal goal = 1;
+  repeated double translational_stiffness = 2;
+  repeated double rotational_stiffness = 3;
+  double kp = 4;
+  double ki = 5;
+  bool termination = 6;
+}
+
 // Goal specification for joint space control
 
 message JointGoal {
@@ -135,6 +163,7 @@ message FrankaControlMessage {
     JOINT_VELOCITY = 5;
     TORQUE = 6;
     OSC_YAW = 7;
+    HYBRID_FORCE_POSITION = 8;
   }
   ControllerType controller_type = 2;
   enum TrajInterpolatorType {

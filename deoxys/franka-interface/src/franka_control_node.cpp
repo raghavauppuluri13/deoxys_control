@@ -38,12 +38,14 @@
 #include "utils/state_estimators/exponential_smoothing_estimator.h"
 
 // Controllers
+#include "controllers/hybrid_force_position.h"
 #include "controllers/joint_impedance.h"
 #include "controllers/joint_position.h"
 #include "controllers/osc_impedance.h"
 #include "controllers/osc_position_impedance.h"
 #include "controllers/osc_yaw_impedance.h"
 
+#include "force_sensor.pb.h"
 #include "franka_controller.pb.h"
 #include "franka_robot_state.pb.h"
 
@@ -55,7 +57,8 @@ enum ControllerType {
   JOINT_IMPEDANCE,
   JOINT_VELOCITY,
   TORQUE,
-  OSC_YAW
+  OSC_YAW,
+  HYBRID_FORCE_POSITION
 };
 
 enum TrajInterpolatorType {
@@ -96,6 +99,9 @@ bool GetControllerType(const FrankaControlMessage &franka_control_msg,
   } else if (franka_control_msg.controller_type() ==
              FrankaControlMessage_ControllerType_TORQUE) {
     controller_type = ControllerType::TORQUE;
+  } else if (franka_control_msg.controller_type() ==
+             FrankaControlMessage_ControllerType_HYBRID_FORCE_POSITION) {
+    controller_type = ControllerType::HYBRID_FORCE_POSITION;
   } else if (franka_control_msg.controller_type() ==
              FrankaControlMessage_ControllerType_NO_CONTROL) {
     controller_type = ControllerType::NO_CONTROL;
@@ -161,11 +167,18 @@ int main(int argc, char **argv) {
   const std::string subscriber_ip = config["PC"]["IP"].as<std::string>();
   const std::string sub_port = config["NUC"]["SUB_PORT"].as<std::string>();
 
+  const std::string force_sensor_sub_port =
+      config["NUC"]["FORCE_SENSOR_SUB_PORT"].as<std::string>();
+
   // Publishing control command
   const std::string pub_port = config["NUC"]["PUB_PORT"].as<std::string>();
 
   // zmq_utils::ZMQPublisher zmq_pub(pub_port);
   zmq_utils::ZMQSubscriber zmq_sub(subscriber_ip, sub_port);
+
+  // force sensor zmq
+  zmq_utils::ZMQSubscriber zmq_force_sensor_sub(subscriber_ip,
+                                                force_sensor_sub_port);
 
   YAML::Node control_config;
   if (argc > 2) {
@@ -174,7 +187,8 @@ int main(int argc, char **argv) {
     control_config = YAML::LoadFile("config/control_config.yml");
   }
 
-  int loaded_state_pub_rate, loaded_policy_rate, loaded_traj_rate;
+  int loaded_state_pub_rate, loaded_policy_rate, loaded_traj_rate,
+      loaded_force_sensor_rate;
   bool zmq_noblock;
 
   if (config["CONTROL"]["STATE_PUBLISHER_RATE"]) {
@@ -187,6 +201,7 @@ int main(int argc, char **argv) {
   } else {
     loaded_policy_rate = 20;
   }
+
   if (config["CONTROL"]["TRAJ_RATE"]) {
     loaded_traj_rate = config["CONTROL"]["TRAJ_RATE"].as<int>();
   } else {
@@ -197,9 +212,17 @@ int main(int argc, char **argv) {
   } else {
     zmq_noblock = true;
   }
+
+  if (config["CONTROL"]["FORCE_SENSOR_RATE"]) {
+    loaded_force_sensor_rate = config["CONTROL"]["FORCE_SENSOR_RATE"].as<int>();
+  } else {
+    loaded_force_sensor_rate = 100;
+  }
+
   const int state_pub_rate = loaded_state_pub_rate;
   const int policy_rate = loaded_policy_rate;
   const int traj_rate = loaded_traj_rate;
+  const int force_sensor_rate = loaded_force_sensor_rate;
 
   // Initialize robot
   log_utils::initialize_logger(
@@ -290,6 +313,56 @@ int main(int argc, char **argv) {
     TrajInterpolatorType traj_interpolator_type =
         TrajInterpolatorType::NO_INTERPOLATION;
     StateEstimatorType state_estimator_type = StateEstimatorType::NO_ESTIMATOR;
+
+    struct {
+      std::mutex mutex;
+      ForceSensorMessage force_sensor_msg;
+    } force_sensor_data{};
+
+    std::thread rpal_force_sensor_msg_sub([&]() {
+      // Determine controller message type
+      while (!global_handler->termination) {
+
+        // ensures that code is run only if hybrid controller is running
+        if (control_command.mutex.try_lock()) {
+          if (control_command.controller_type !=
+              ControllerType::HYBRID_FORCE_POSITION) {
+            control_command.mutex.lock();
+            continue;
+          } else {
+            control_command.mutex.lock();
+          }
+        } else {
+          continue;
+        }
+
+        std::this_thread::sleep_for(
+            std::chrono::milliseconds(int(1. / force_sensor_rate * 1000.)));
+
+        // Receive message
+        std::string msg;
+        msg = zmq_force_sensor_sub.recv(zmq_noblock);
+        if (msg.length() == 0) {
+          global_handler->no_msg_counter += int(global_handler->start);
+          global_handler->logger->debug("Force Sensor Missing Counter {0}",
+                                        global_handler->no_msg_counter);
+          if (global_handler->no_msg_counter >= 20) {
+            global_handler->logger->debug(
+                "No valid force sensor messages received in 20 steps");
+          }
+          continue;
+        }
+
+        ForceSensorMessage force_sensor_msg;
+
+        if (force_sensor_msg.ParseFromString(msg)) {
+          if (force_sensor_data.mutex.try_lock()) {
+            force_sensor_data.force_sensor_msg = force_sensor_msg;
+            force_sensor_data.mutex.unlock();
+          }
+        }
+      }
+    });
 
     // control message subscription thread
     std::thread control_msg_sub([&]() {
@@ -383,6 +456,14 @@ int main(int argc, char **argv) {
             global_handler->controller_ptr =
                 std::make_shared<controller::JointImpedanceController>(model);
             global_handler->logger->info("Initialize Joint Impedance");
+            global_handler->running = true;
+          } else if (control_command.controller_type ==
+                         ControllerType::HYBRID_FORCE_POSITION &&
+                     controller_type == ControllerType::NO_CONTROL) {
+            global_handler->controller_ptr =
+                std::make_shared<controller::HybridForcePositionController>(
+                    model);
+            global_handler->logger->info("Initialize Hybrid Force-Position");
             global_handler->running = true;
           } else if (control_command.controller_type ==
                          ControllerType::NO_CONTROL ||
@@ -511,11 +592,27 @@ int main(int argc, char **argv) {
           robot.control(control_callbacks::CreateTorqueFromJointSpaceCallback(
               global_handler, state_publisher, model, current_state_info,
               goal_state_info, policy_rate, traj_rate));
+
         } else if (controller_type == ControllerType::JOINT_POSITION) {
           global_handler->logger->info("Joint position callback");
           robot.control(control_callbacks::CreateJointPositionCallback(
               global_handler, state_publisher, model, current_state_info,
               goal_state_info, policy_rate, traj_rate));
+
+        } else if (controller_type == ControllerType::HYBRID_FORCE_POSITION) {
+
+          ForceSensorMessage force_sensor_msg;
+
+          if (force_sensor_data.mutex.try_lock()) {
+            force_sensor_msg = force_sensor_data.force_sensor_msg;
+            force_sensor_data.mutex.unlock();
+          }
+
+          global_handler->logger->info("Hybrid force-position callback");
+          robot.control(
+              control_callbacks::CreateTorqueFromHybridForcePositionCallback(
+                  global_handler, state_publisher, model, current_state_info,
+                  goal_state_info, policy_rate, traj_rate, force_sensor_msg));
         }
       }
       global_handler->time = 0.0;
