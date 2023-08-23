@@ -1,15 +1,15 @@
 PC:
   NAME: "nvidia"
   IP: 192.168.0.112
-  FORCE_SENSOR_PUB_PORT: 5559
+  FORCE_SENSOR_PUB_PORT: 6559
 
 NUC:
   NAME: "charmander"
   IP: 192.168.0.115
-  PUB_PORT: 5556
-  SUB_PORT: 5555
-  GRIPPER_PUB_PORT: 5558
-  GRIPPER_SUB_PORT: 5557
+  PUB_PORT: 6556
+  SUB_PORT: 6555
+  GRIPPER_PUB_PORT: 6558
+  GRIPPER_SUB_PORT: 6557
 
 ROBOT:
   IP: 172.18.1.2
@@ -24,7 +24,7 @@ CONTROL:
 ARM_LOGGER:
   CONSOLE:
     LOGGER_NAME: "arm_logger"
-    LEVEL: "info"
+    LEVEL: "debug"
     USE: true
   FILE:
     LOGGER_NAME: "logs/deoxys_control_arm_program.log"

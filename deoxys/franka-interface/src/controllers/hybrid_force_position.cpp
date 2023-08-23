@@ -126,11 +126,34 @@ std::array<double, 7> HybridForcePositionController::Step(
   std::array<double, 7> coriolis_array = model_->coriolis(robot_state);
   Eigen::Map<const Eigen::Matrix<double, 7, 1>> coriolis(coriolis_array.data());
 
+  // jacobian
+  std::array<double, 42> jacobian_array =
+      model_->zeroJacobian(franka::Frame::kEndEffector, robot_state);
+  Eigen::Map<const Eigen::Matrix<double, 6, 7>> jacobian(jacobian_array.data());
+
+  // transform
+  Eigen::Affine3d transform(Eigen::Matrix4d::Map(robot_state.O_T_EE.data()));
+  Eigen::Vector3d position(transform.translation());
+  Eigen::Quaterniond orientation(transform.linear());
+
   // Current joint velocity
   Eigen::Map<const Eigen::Matrix<double, 7, 1>> dq(robot_state.dq.data());
 
-  // Current joint position
-  Eigen::Map<const Eigen::Matrix<double, 7, 1>> q(robot_state.q.data());
+  // FORCE CONTROL
+  Eigen::VectorXd desired_force_torque(6), tau_force(7), tau_task(7),
+      tau_cartesian_impedance(7), tau_cmd(7), force_control(6);
+
+  desired_force_torque.head<3>() = wrench_in_sensor_frame;
+
+  /*
+  force_error_ =
+      force_error_ + (desired_wrench_in_sensor_frame - wrench_in_sensor_frame);
+  force_control =
+      (desired_force_torque +
+       kp_ * (desired_force_torque - force_ext + force_ext_initial_) +
+       ki_ * force_error_);
+  force_control << 0, 0, force_control(2), 0, 0, 0;
+  */
 
   std::array<double, 7> tau_d_array{};
   Eigen::VectorXd::Map(&tau_d_array[0], 7) = tau_d;

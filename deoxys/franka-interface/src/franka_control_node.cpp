@@ -323,22 +323,20 @@ int main(int argc, char **argv) {
     std::thread rpal_force_sensor_msg_sub([&]() {
       // Determine controller message type
       while (!global_handler->termination) {
-
+        std::this_thread::sleep_for(
+            std::chrono::milliseconds(int(1. / force_sensor_rate * 1000.)));
         // ensures that code is run only if hybrid controller is running
         if (control_command.mutex.try_lock()) {
           if (control_command.controller_type !=
               ControllerType::HYBRID_FORCE_POSITION) {
-            control_command.mutex.lock();
+            control_command.mutex.unlock();
             continue;
           } else {
-            control_command.mutex.lock();
+            control_command.mutex.unlock();
           }
         } else {
           continue;
         }
-
-        std::this_thread::sleep_for(
-            std::chrono::milliseconds(int(1. / force_sensor_rate * 1000.)));
 
         // Receive message
         std::string msg;

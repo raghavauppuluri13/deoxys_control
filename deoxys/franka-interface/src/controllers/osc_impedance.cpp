@@ -90,7 +90,6 @@ void OSCImpedanceController::ComputeGoal(
                            current_state_info->quat_EE_in_base_frame);
   } else {
     goal_state_info->pos_EE_in_base_frame =
-        current_state_info->pos_EE_in_base_frame +
         Eigen::Vector3d(control_msg_.goal().x(), control_msg_.goal().y(),
                         control_msg_.goal().z());
     Eigen::AngleAxisd absolute_axis_angle;

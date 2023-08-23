@@ -18,6 +18,10 @@ protected:
   // Cartesian impedance
   Eigen::Matrix<double, 6, 6> cartesian_stiffness_;
   Eigen::Matrix<double, 6, 6> cartesian_damping_;
+  Eigen::Vector3d force_error_;
+  double duration_;
+  std::chrono::high_resolution_clock::time_point t1 =
+      std::chrono::high_resolution_clock::now();
 
 public:
   HybridForcePositionController();
