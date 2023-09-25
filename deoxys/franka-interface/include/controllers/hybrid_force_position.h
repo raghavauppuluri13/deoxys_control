@@ -11,14 +11,18 @@ protected:
   RpalHybridForcePositionControllerMessage control_msg_;
 
   // Force control PI
-  double kp_{0.0};
-  double ki_{0.0};
+  double kp_{0.5};
+  double desired_force_{7.0};
+  double delta_tau_max_{1.0};
+  double ki_{1.0};
   static constexpr double kDeltaTauMax{1.0};
 
   // Cartesian impedance
+  bool initialized_ = false;
   Eigen::Matrix<double, 6, 6> cartesian_stiffness_;
   Eigen::Matrix<double, 6, 6> cartesian_damping_;
   Eigen::Vector3d force_error_;
+  Eigen::Matrix<double, 6, 1> force_ext_initial_;
   double duration_;
   std::chrono::high_resolution_clock::time_point t1 =
       std::chrono::high_resolution_clock::now();
