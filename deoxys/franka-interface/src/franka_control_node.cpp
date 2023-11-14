@@ -320,6 +320,7 @@ int main(int argc, char **argv) {
       ForceSensorMessage force_sensor_msg;
     } force_sensor_data{};
 
+    /*
     std::thread rpal_force_sensor_msg_sub([&]() {
       // Determine controller message type
       while (!global_handler->termination) {
@@ -362,6 +363,7 @@ int main(int argc, char **argv) {
         }
       }
     });
+    */
 
     // control message subscription thread
     std::thread control_msg_sub([&]() {
@@ -582,6 +584,7 @@ int main(int argc, char **argv) {
         if (controller_type == ControllerType::OSC_POSE ||
             controller_type == ControllerType::OSC_POSITION ||
             controller_type == ControllerType::OSC_YAW) {
+          global_handler->logger->info("OSC Callback");
           robot.control(
               control_callbacks::CreateTorqueFromCartesianSpaceCallback(
                   global_handler, state_publisher, model, current_state_info,
@@ -601,6 +604,7 @@ int main(int argc, char **argv) {
         } else if (controller_type == ControllerType::HYBRID_FORCE_POSITION) {
 
           ForceSensorMessage force_sensor_msg;
+          global_handler->logger->info("Hybrid force position");
 
           if (force_sensor_data.mutex.try_lock()) {
             force_sensor_msg = force_sensor_data.force_sensor_msg;

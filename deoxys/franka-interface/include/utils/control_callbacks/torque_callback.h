@@ -202,17 +202,6 @@ CreateTorqueFromHybridForcePositionCallback(
         robot_state, wrench_in_sensor_frame, desired_wrench_in_sensor_frame,
         desired_pos_EE_in_base_frame, desired_quat_EE_in_base_frame);
 
-    std::string print_tau(tau_d_array.begin(), tau_d_array.end());
-
-    for (size_t i = 0; i < tau_d_array.size(); ++i) {
-      print_tau += std::to_string(tau_d_array[i]);
-      if (i < tau_d_array.size() - 1) {
-        print_tau += " ";
-      }
-    }
-
-    global_handler->logger->info(print_tau);
-
     std::array<double, 7> tau_d_rate_limited = franka::limitRate(
         franka::kMaxTorqueRate, tau_d_array, robot_state.tau_J_d);
     control_utils::TorqueSafetyGuardFn(tau_d_rate_limited,
@@ -222,6 +211,9 @@ CreateTorqueFromHybridForcePositionCallback(
         std::chrono::high_resolution_clock::now();
     auto time = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1);
     // global_handler->logger->debug("{0} microseconds" , time.count());
+
+    global_handler->logger->info(
+        "{}", spdlog::fmt_lib::join(tau_d_rate_limited, ","));
 
     return tau_d_rate_limited;
   };

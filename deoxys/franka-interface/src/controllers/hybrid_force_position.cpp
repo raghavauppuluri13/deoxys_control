@@ -148,12 +148,13 @@ std::array<double, 7> HybridForcePositionController::Step(
   Eigen::Map<const Eigen::Matrix<double, 7, 1>> dq(robot_state.dq.data());
 
   // FORCE CONTROL
-  Eigen::VectorXd desired_force_torque(6), tau_force(7), tau_task(7),
-      tau_cartesian_impedance(7), tau_cmd(7), force_control(6);
+  Eigen::Matrix<double, 6, 1> desired_force_torque, force_control;
+  Eigen::Matrix<double, 7, 1> tau_force, tau_task, tau_cartesian_impedance,
+      tau_cmd;
 
   desired_force_torque.setZero();
-  desired_force_torque(2) = -desired_force_;
-  // desired_force_torque.head<3>() = wrench_in_sensor_frame;
+  // desired_force_torque(2) = -desired_force_;
+  desired_force_torque.head<3>() = desired_wrench_in_sensor_frame;
 
   force_error_ =
       force_error_ + (desired_force_torque - force_ext + force_ext_initial_);
@@ -161,7 +162,8 @@ std::array<double, 7> HybridForcePositionController::Step(
       (desired_force_torque +
        kp_ * (desired_force_torque - force_ext + force_ext_initial_) +
        ki_ * force_error_);
-  force_control << 0, 0, force_control(2), 0, 0, 0;
+  force_control << force_control(0), force_control(1), force_control(2), 0, 0,
+      0;
   tau_force = jacobian.transpose() * force_control;
   tau_d << tau_force;
 

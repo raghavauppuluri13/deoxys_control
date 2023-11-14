@@ -24,7 +24,7 @@ CONTROL:
 ARM_LOGGER:
   CONSOLE:
     LOGGER_NAME: "arm_logger"
-    LEVEL: "debug"
+    LEVEL: "info"
     USE: true
   FILE:
     LOGGER_NAME: "logs/deoxys_control_arm_program.log"

@@ -21,7 +21,7 @@ protected:
   bool initialized_ = false;
   Eigen::Matrix<double, 6, 6> cartesian_stiffness_;
   Eigen::Matrix<double, 6, 6> cartesian_damping_;
-  Eigen::Vector3d force_error_;
+  Eigen::Matrix<double, 6, 1> force_error_;
   Eigen::Matrix<double, 6, 1> force_ext_initial_;
   double duration_;
   std::chrono::high_resolution_clock::time_point t1 =
